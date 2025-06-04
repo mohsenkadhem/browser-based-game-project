@@ -1,141 +1,85 @@
-const dictionary = [`earth`, `plane`, `crane`, `audio`];
+var height = 6; // number of guesses
+var width = 5;  // length of the word
 
-const state = {
-  secret: dictionary[Math.floor(Math.random() * dictionary.length)],
-  grid: Array(6)
-    .fill()
-    .map(() => Array(5).fill(``)),
-  currentRow: 0,
-  currentCol: 0,
+var row = 0; // current guess
+var col = 0; // current letter for that attempt
+
+var gameOver = false; 
+var word = "SQUID";
+
+window.onload = function () {
+  initialize();
 };
 
-function updateGrid() {
-  for (let i = 0; i < state.grid.length; i++) {
-    for (let j = 0; j < state.grid[i].length; j++) {
-      const box = document.getElementById(`box${i}${j}`);
-      box.textContent = state.grid[i][j];
+function initialize() {
+  // create the board
+  for (let r = 0; r < height; r++) {
+    for (let c = 0; c < width; c++) {
+      let tile = document.createElement("span"); 
+      tile.id = r.toString() + "-" + c.toString();
+      tile.classList.add("tile"); 
+      tile.innerText = ""; 
+      document.getElementById("board").appendChild(tile);
     }
   }
 }
 
-// creates a single box for one letter each.
-function drawBox(container, row, col, letter = "") {
-  const box = document.createElement("div");
-  box.className = "box";
-  box.id = `box${row}${col}`;
-  box.textContent = letter;
-  container.appendChild(box);
-  return box;
-}
+// Listen for key press
 
-function drawGrid(container) {
-  const grid = document.createElement("div");
-  grid.className = "grid";
+document.addEventListener("keyup", (e) => {
+  if (gameOver) return;
 
-  for (let i = 0; i < 6; i++) {
-    for (let j = 0; j < 5; j++) {
-      drawBox(grid, i, j);
-    }
-  }
-
-  container.appendChild(grid);
-}
-
-function getCurrentWord() {
-  return state.grid[state.currentRow].join("");
-}
-
-// checks if the word guessed is a valid word 
-
-function isWordValid(word) {
-  return dictionary.includes(word.toLowerCase());
-}
-
-function revealWord(guess) {
-  const row = state.currentRow;
-
-  for (let i = 0; i < 5; i++) {
-    const box = document.getElementById(`box${row}${i}`);
-    const letter = box.textContent;
-
-    if (letter === state.secret[i]) {
-      box.classList.add("right"); // correct letter in correct positing
-
-    } else if (state.secret.includes(letter)) {
-      box.classList.add("wrong"); // letter exists but in wrong position 
-    } else {
-      box.classList.add("empty"); // letter dosent exist at all
-    }
-  }
-
-  const isWinner = state.secret === guess;
-  const isLastRow = state.currentRow === 5;
-
-  if (isWinner) {
-    alert(`Congratulations!`);
-    state.currentRow = 6;
-  } else if (isLastRow) {
-    alert(`Better luck next time! The word was ${state.secret}`);
-    state.currentRow = 6;
-  } else {
-    state.currentRow++;
-    state.currentCol = 0;
-  }
-}
-
-function isLetter(key) {
-  return key.length === 1 && key.match(/[a-z]/i);
-}
-
-function addLetter(letter) {
-  if (state.currentCol === 5) return;
-  state.grid[state.currentRow][state.currentCol] = letter.toLowerCase();
-  state.currentCol++;
-}
-
-function removeLetter() {
-  if (state.currentCol === 0) return;
-  state.currentCol--;
-  state.grid[state.currentRow][state.currentCol] = "";
-}
-
-function startup() {
-  const game = document.getElementById("game");
-  drawGrid(game);
-  registerKeyboardEvents();
-  updateGrid();
-  console.log(state.secret);
-}
-
-startup();
-
-function registerKeyboardEvents() {
-  document.body.onkeydown = (e) => {
-    if (state.currentRow >= 6) return;
-
-    const key = e.key;
-
-    if (key === "Enter") {
-      if (state.currentCol === 5) {
-        const word = getCurrentWord();
-        if (isWordValid(word)) {
-          revealWord(word);
-        } else {
-          alert("Not a valid word.");
-          state.grid[state.currentRow] = Array(5).fill("");
-          state.currentCol = 0;
-        }
+  // alert (e.code);
+  if ("KeyA" <= e.code && e.code <= "KeyZ") {
+    if (col < width) {
+      let currTile = document.getElementById(row.toString() + "-" + col.toString());
+      if (currTile.innerText == "") {
+        currTile.innerText = e.code[3];
+        col += 1;
       }
     }
+  } else if (e.code == "Backspace") {
+    if (0 < col && col <= width) {
+      col -= 1;
+    }
+    let currTile = document.getElementById(row.toString() + "-" + col.toString());
+    currTile.innerText = "";
+  } else if (e.code == "Enter") {
+    update();
+    row += 1; // start new row
+    col = 0; // start at 0 for new row
+  }
 
-    if (key === "Backspace") {
-      removeLetter();
+  if (!gameOver && row == height) {
+    gameOver = true;
+    document.getElementById("answer").innerText = word;
+  }
+});
+
+function update() {
+  let correct = 0;
+  for (let c = 0; c < width; c++) {
+    let currTile = document.getElementById(row.toString() + "-" + c.toString());
+    let letter = currTile.innerText;
+
+    // is it in the correct position?
+    if (word[c] == letter) {
+      currTile.classList.add("correct");
+      correct += 1;
     }
 
-    if (isLetter(key)) {
-      addLetter(key);
+    // is it in the word?
+    else if (word.includes(letter)) {
+      currTile.classList.add("present");
     }
 
-    updateGrid();
-  };
+    // not in the word
+    else {
+      currTile.classList.add("absent");
+    }
+  }
+
+  if (correct == width) {
+    gameOver = true;
+  }
 }
